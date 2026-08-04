@@ -1,0 +1,664 @@
+/*
+ * shogiXbook のスタイル。
+ *
+ * レイアウトの前提（要件定義書 6.1）:
+ *   .reader を PC・スマホのいずれでも唯一のスクロール領域とする。
+ *   Reader の IntersectionObserver が .reader を root として「読んでいる帯」を
+ *   割合で指定しているため、ページ全体がスクロールする構成にしてはいけない。
+ */
+
+:root {
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --border: #ddd6c9;
+  --text: #23201b;
+  --text-dim: #6b645a;
+  --accent: #8a5a2b;
+  --accent-soft: #f0e3d2;
+  --board-bg: #f0d9a7;
+  --board-line: #8a6e42;
+  --highlight: #ffe9a8;
+  --selected: #b9dcff;
+  --sheet-backdrop: rgb(0 0 0 / 40%);
+
+  color-scheme: light dark;
+  font-family: system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16151a;
+    --surface: #1e1d24;
+    --border: #35333d;
+    --text: #ece9e3;
+    --text-dim: #9c968c;
+    --accent: #d8a76a;
+    --accent-soft: #3a3128;
+    --board-bg: #b08d5c;
+    --board-line: #4a3a22;
+    --highlight: #7a6330;
+    --selected: #2f5c86;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-text-size-adjust: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* ---------- 全体レイアウト ---------- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.app-title {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.app-title h1 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-title select {
+  font: inherit;
+  padding: 0.15rem 0.3rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  max-width: 14rem;
+}
+
+.app-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.app-actions button {
+  padding: 0.3rem 0.7rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.app-actions button.is-on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.app-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 250px minmax(300px, 400px) 1fr;
+}
+
+.pane {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pane--tree {
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 0.75rem;
+}
+
+.pane--board {
+  border-right: 1px solid var(--border);
+  padding: 0.75rem;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.pane--reader {
+  min-height: 0;
+}
+
+.pane-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+/* ---------- 盤面 ---------- */
+
+.board-area {
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  position: relative;
+}
+
+.board {
+  width: 100%;
+  height: auto;
+  touch-action: manipulation;
+}
+
+.board-bg {
+  fill: var(--board-bg);
+}
+
+.board-lines line {
+  stroke: var(--board-line);
+  stroke-width: 2;
+}
+
+.board-star {
+  fill: var(--board-line);
+}
+
+.board-label {
+  fill: var(--text-dim);
+  font-size: 30px;
+}
+
+.square {
+  fill: transparent;
+}
+
+.square--last {
+  fill: var(--highlight);
+}
+
+.square--selected {
+  fill: var(--selected);
+}
+
+.piece {
+  font-size: 64px;
+  fill: #1b1b1b;
+  font-weight: 600;
+  user-select: none;
+}
+
+.destination {
+  fill: rgb(60 120 200 / 45%);
+}
+
+.destination--capture {
+  fill: none;
+  stroke: rgb(60 120 200 / 60%);
+  stroke-width: 6;
+}
+
+.board-error {
+  padding: 1rem;
+  color: crimson;
+}
+
+/* 駒台 */
+
+.hand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.2rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.hand--active {
+  border-color: var(--accent);
+}
+
+.hand-label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.hand-pieces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.hand-piece {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.1rem;
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0.1rem 0.35rem;
+  background: var(--board-bg);
+  border: 1px solid var(--board-line);
+  border-radius: 4px;
+  color: #1b1b1b;
+}
+
+.hand-piece:disabled {
+  opacity: 0.75;
+  cursor: default;
+}
+
+.hand-piece--selected {
+  outline: 3px solid var(--accent);
+}
+
+.hand-piece-count {
+  font-size: 0.7rem;
+}
+
+.hand-empty {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+/* 盤面まわりの操作 */
+
+.board-status {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  font-size: 0.85rem;
+}
+
+.board-status .ply {
+  color: var(--text-dim);
+}
+
+.board-status .move-text {
+  font-weight: 600;
+}
+
+.board-nav {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.board-nav button {
+  min-width: 3rem;
+  min-height: 2.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.board-nav-tree {
+  display: none;
+}
+
+.board-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.promotion-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--sheet-backdrop);
+}
+
+.promotion-dialog {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.promotion-dialog p {
+  margin: 0 0 0.75rem;
+}
+
+.promotion-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.promotion-buttons button {
+  min-width: 5.5rem;
+  min-height: 3rem;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.promotion-cancel {
+  margin-top: 0.6rem;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  text-decoration: underline;
+}
+
+/* ---------- 本文 ---------- */
+
+.reader {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem;
+  scroll-behavior: smooth;
+}
+
+.block {
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid transparent;
+  border-radius: 0 4px 4px 0;
+  max-width: 42rem;
+  line-height: 1.85;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.block--active {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.block h2 {
+  font-size: 1.15rem;
+  margin: 0.5rem 0;
+}
+
+.block h3 {
+  font-size: 1rem;
+  margin: 0.5rem 0;
+}
+
+.block p {
+  margin: 0.5rem 0;
+}
+
+.reader-tail {
+  height: 60vh;
+}
+
+.move-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+/* 次の一手 */
+
+.quiz {
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+}
+
+.quiz-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.quiz-badge {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.quiz-goto,
+.quiz-reveal {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.75rem;
+}
+
+.quiz-hint {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.quiz-result {
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+.quiz-result--correct {
+  color: #1f7a4d;
+}
+
+.quiz-result--wrong {
+  color: #b3452f;
+}
+
+.quiz-comment {
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.quiz-explanation {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border);
+  font-size: 0.9rem;
+}
+
+/* ---------- 分岐ツリー ---------- */
+
+.tree {
+  font-size: 0.85rem;
+}
+
+.tree-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  margin: 0.2rem 0;
+}
+
+.tree-node {
+  padding: 0.25rem 0.4rem;
+  min-height: 2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.tree-node--current {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.tree-node--root {
+  margin-bottom: 0.3rem;
+}
+
+.tree-variation {
+  margin: 0.3rem 0 0.3rem 0.75rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--border);
+}
+
+.tree-variation-label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+/* ---------- ボトムシート（スマホの分岐表示） ---------- */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--sheet-backdrop);
+  display: flex;
+  align-items: flex-end;
+  z-index: 10;
+}
+
+.sheet {
+  width: 100%;
+  max-height: 70dvh;
+  overflow-y: auto;
+  background: var(--bg);
+  border-radius: 12px 12px 0 0;
+  padding: 0.75rem 1rem calc(1rem + env(safe-area-inset-bottom));
+}
+
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.sheet-header h2 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.sheet-header button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* ---------- タブレット ---------- */
+
+@media (max-width: 1024px) {
+  .app-main {
+    grid-template-columns: minmax(280px, 42%) 1fr;
+  }
+
+  .pane--tree {
+    display: none;
+  }
+
+  .board-nav-tree {
+    display: block;
+  }
+}
+
+/* ---------- スマホ縦 ---------- */
+
+@media (max-width: 700px) {
+  .app-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  /* 盤面が画面を占めすぎると読み物として成立しないため、
+     盤・駒台・操作ボタンを合わせて画面の半分強に収まるよう抑える。 */
+  .app-header {
+    padding: 0.4rem 0.6rem;
+    gap: 0.35rem 0.6rem;
+  }
+
+  .app-title h1 {
+    font-size: 0.85rem;
+  }
+
+  .app-actions button {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .pane--board {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 0.4rem;
+    gap: 0.3rem;
+  }
+
+  .board-area {
+    max-width: min(100%, 38dvh);
+  }
+
+  .hand {
+    min-height: 1.9rem;
+    padding: 0.15rem 0.35rem;
+  }
+
+  .hand-piece {
+    min-width: 1.8rem;
+    min-height: 1.8rem;
+  }
+
+  .reader {
+    padding: 1rem;
+  }
+
+  .block {
+    line-height: 1.9;
+  }
+
+  /* 片手操作を想定し、手順送りは盤面ペインの末尾（画面中央寄り）に置く。 */
+  .board-nav {
+    width: 100%;
+  }
+
+  .board-nav button {
+    flex: 1;
+    min-width: 0;
+    min-height: 2.6rem;
+  }
+}
