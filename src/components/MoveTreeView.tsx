@@ -1,9 +1,13 @@
 /**
  * 分岐ツリー表示（要件定義書 F-3-2）。
  *
- * 現状は木をそのまま入れ子で描く単純な実装。定跡書の実データでは分岐が深く多いため、
- * このままでは画面を溢れさせる（R-9）。「全体を俯瞰する図」と「現在地周辺だけを
- * 示す簡易表示」の 2 段構えが必要になる見込みで、そこは UI 設計フェーズで詰める。
+ * 伸びる向きは横（手順を横一列に並べ、変化を下へ入れ子）と
+ * 縦（手順を縦に積み、変化を右へ入れ子）を切り替えられる。
+ * 定跡書は手順が長く変化も多いため、縦のほうが一覧しやすい場面が多い。
+ *
+ * 実データでは分岐が深くなり画面を溢れさせる（R-9）。
+ * 「全体を俯瞰する図」と「現在地周辺だけを示す簡易表示」の 2 段構えが必要になる
+ * 見込みで、そこは UI 設計フェーズで詰める。
  */
 
 import { useBookStore } from "../store/bookStore";
@@ -14,10 +18,11 @@ export function MoveTreeView() {
   const tree = useBookStore((state) => state.chapter().tree);
   const currentNodeId = useBookStore((state) => state.currentNodeId);
   const setCurrentNode = useBookStore((state) => state.setCurrentNode);
+  const orientation = useBookStore((state) => state.treeOrientation);
   useBookStore((state) => state.revision); // 木の破壊的更新を検知するため購読する
 
   return (
-    <div className="tree">
+    <div className={`tree tree--${orientation}`}>
       <button
         type="button"
         className={`tree-node tree-node--root${
@@ -36,7 +41,7 @@ export function MoveTreeView() {
 }
 
 /**
- * 一続きの手順（先頭の子を辿った本筋）を横並びで描き、
+ * 一続きの手順（先頭の子を辿った本筋）を描き、
  * 途中で分かれる変化をその位置に入れ子で差し込む。
  *
  * @param start この手順の先頭ノード
@@ -80,6 +85,7 @@ function Line({
             onClick={() => setCurrentNode(step.node.id, "tree")}
             title={`${step.ply}手目`}
           >
+            <span className="tree-ply">{step.ply}</span>
             {formatNodeMove(step.parent, step.node)}
           </button>
         ))}

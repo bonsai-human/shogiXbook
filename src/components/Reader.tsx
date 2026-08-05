@@ -145,6 +145,19 @@ export function Reader() {
           >
             {block.type === "quiz" && block.quiz ? (
               <QuizCard block={block} />
+            ) : block.type === "diagram" && block.diagram ? (
+              // この構造では盤が常に横にあるため、図を本文中にもう一枚置くと重複する。
+              // 図はその局面へ飛ぶ指示として扱う。
+              <button
+                type="button"
+                className="diagram-chip"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setCurrentNode(block.diagram!.fromNodeId, "text");
+                }}
+              >
+                {block.diagram.caption ?? "図"} の局面へ
+              </button>
             ) : (
               <Markdown
                 markdown={block.markdown}

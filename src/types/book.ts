@@ -76,6 +76,26 @@ export type Evaluation = {
 export type BlockType = "text" | "diagram" | "quiz";
 
 /**
+ * 本文中の図面の振る舞い。どれを既定にするかは検討中で、
+ * 比較のためすべて実装してある。
+ *
+ *  playable  : 図ごとに短い手順を持ち、図の下の送りボタンでその場で進められる
+ *  static    : 紙の棋書と同じ静止図。タップしたときだけ拡大して操作できる
+ *  page-main : 紙面に主図が 1 つあり、本文中の図はその主図を差し替える指示になる
+ */
+export type DiagramBehavior = "playable" | "static" | "page-main";
+
+export type Diagram = {
+  /** 図が示す局面のノード。 */
+  fromNodeId: string;
+  /** ここまで手順を進められる。省略時は fromNodeId の静止図になる。 */
+  toNodeId?: string;
+  behavior: DiagramBehavior;
+  /** 「第1図」などの図番号。 */
+  caption?: string;
+};
+
+/**
  * 本文ブロック。
  *
  * nodeId が本文と盤面の連動の実体である（F-2-2）。
@@ -90,6 +110,8 @@ export type ContentBlock = {
   markdown: string;
   /** type === "quiz" のときの出題定義。 */
   quiz?: Quiz;
+  /** type === "diagram" のときの図面定義。 */
+  diagram?: Diagram;
 };
 
 /** 次の一手（問題）の定義（F-5）。 */

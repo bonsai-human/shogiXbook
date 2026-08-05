@@ -1,70 +1,57 @@
 /**
  * アプリの外枠。
  *
- * 画面構成は要件定義書 6.1 のレスポンシブ方針に沿う。
- *   PC       : 3 ペイン（分岐ツリー / 盤面 / 本文）
- *   スマホ縦 : 単一カラム。盤面を上部に固定し、本文をその下にスクロール。
- *              分岐ツリーは常時表示せず、必要なときに開く（F-3-8）。
- * CSS 側のメディアクエリで切り替えており、コンポーネントは共通である。
+ * いまは「紙面の構造をどれにするか」を決めるための見比べ用の器になっている。
+ * 4 つの構造と、図面の 3 つの振る舞い、組方向、分岐ツリーの向きを
+ * その場で切り替えられる。決まったら切り替え UI は畳んで既定を固定する。
  */
 
-import { useEffect, useState } from "react";
-import { Board } from "./components/Board";
-import { Reader } from "./components/Reader";
+import { useState } from "react";
+import { PagedLayout } from "./layouts/PagedLayout";
+import { ChapterPageLayout } from "./layouts/ChapterPageLayout";
+import { ScrollLayout } from "./layouts/ScrollLayout";
+import { LinkedLayout } from "./layouts/LinkedLayout";
 import { MoveTreeView } from "./components/MoveTreeView";
 import { useBookStore } from "./store/bookStore";
-import { findParent, formatNodeMove, plyOf } from "./shogi/tree";
+import type { LayoutMode } from "./store/bookStore";
+import type { DiagramBehavior } from "./types/book";
+
+const LAYOUTS: { key: LayoutMode; label: string; note: string }[] = [
+  { key: "paged", label: "ページめくり", note: "紙の棋書に一番近い。内容量に応じて再分割する" },
+  { key: "chapter-page", label: "章＝ページ", note: "めくる感覚を残しつつ再分割は不要" },
+  { key: "scroll", label: "スクロール", note: "図は本文の流れの中。記事に近い" },
+  { key: "linked", label: "連動（初版）", note: "盤を固定し本文スクロールに追従させる" },
+];
+
+const BEHAVIORS: { key: DiagramBehavior | null; label: string; note: string }[] = [
+  { key: null, label: "本の指定どおり", note: "図ごとに設定された振る舞いを使う" },
+  { key: "playable", label: "①その場で進む", note: "図の下の送りで手順を追える" },
+  { key: "static", label: "②静止図", note: "タップしたときだけ拡大して動かす" },
+  { key: "page-main", label: "③主図ひとつ", note: "紙面の主図を本文中の指示で差し替える" },
+];
 
 export function App() {
   const book = useBookStore((state) => state.book);
   const chapterIndex = useBookStore((state) => state.chapterIndex);
   const setChapter = useBookStore((state) => state.setChapter);
-  const chapter = useBookStore((state) => state.chapter)();
-  const currentNode = useBookStore((state) => state.currentNode)();
-  const currentNodeId = useBookStore((state) => state.currentNodeId);
-  const flipped = useBookStore((state) => state.flipped);
-  const autoFollow = useBookStore((state) => state.autoFollow);
+  const layoutMode = useBookStore((state) => state.layoutMode);
+  const setLayoutMode = useBookStore((state) => state.setLayoutMode);
+  const writingMode = useBookStore((state) => state.writingMode);
+  const setWritingMode = useBookStore((state) => state.setWritingMode);
+  const treeOrientation = useBookStore((state) => state.treeOrientation);
+  const setTreeOrientation = useBookStore((state) => state.setTreeOrientation);
+  const diagramBehavior = useBookStore((state) => state.diagramBehavior);
+  const setDiagramBehavior = useBookStore((state) => state.setDiagramBehavior);
   const editing = useBookStore((state) => state.editing);
-  const playMove = useBookStore((state) => state.playMove);
-  const goBack = useBookStore((state) => state.goBack);
-  const goForward = useBookStore((state) => state.goForward);
-  const goToStart = useBookStore((state) => state.goToStart);
-  const goToEnd = useBookStore((state) => state.goToEnd);
-  const toggleFlip = useBookStore((state) => state.toggleFlip);
-  const toggleAutoFollow = useBookStore((state) => state.toggleAutoFollow);
   const toggleEditing = useBookStore((state) => state.toggleEditing);
 
+  const [panelOpen, setPanelOpen] = useState(false);
   const [treeOpen, setTreeOpen] = useState(false);
 
-  // キーボードによる手順送り（F-2-6 / NF-9）。
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      const target = event.target as HTMLElement | null;
-      if (target && /^(INPUT|TEXTAREA)$/.test(target.tagName)) return;
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        goBack();
-      } else if (event.key === "ArrowRight") {
-        event.preventDefault();
-        goForward();
-      } else if (event.key === "Home") {
-        event.preventDefault();
-        goToStart();
-      } else if (event.key === "End") {
-        event.preventDefault();
-        goToEnd();
-      }
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [goBack, goForward, goToStart, goToEnd]);
-
-  const parent = findParent(chapter.tree, currentNodeId);
-  const ply = plyOf(chapter.tree, currentNodeId);
-  const moveText = formatNodeMove(parent, currentNode);
+  const layoutNote = LAYOUTS.find((item) => item.key === layoutMode)?.note ?? "";
 
   return (
-    <div className="app">
+    <div className={`app app--${writingMode}`}>
       <header className="app-header">
         <div className="app-title">
           <h1>{book.meta.title}</h1>
@@ -73,9 +60,9 @@ export function App() {
             onChange={(event) => setChapter(Number(event.target.value))}
             aria-label="章の選択"
           >
-            {book.chapters.map((item, index) => (
-              <option key={item.id} value={index}>
-                {item.title}
+            {book.chapters.map((chapter, index) => (
+              <option key={chapter.id} value={index}>
+                {chapter.title}
               </option>
             ))}
           </select>
@@ -83,79 +70,113 @@ export function App() {
         <div className="app-actions">
           <button
             type="button"
-            className={editing ? "is-on" : ""}
-            onClick={toggleEditing}
-            title="盤面で駒を動かして手順を追加できるようにします"
+            className={panelOpen ? "is-on" : ""}
+            onClick={() => setPanelOpen(!panelOpen)}
           >
-            {editing ? "編集中" : "閲覧中"}
+            見比べ
           </button>
-          <button
-            type="button"
-            className={autoFollow ? "is-on" : ""}
-            onClick={toggleAutoFollow}
-            title="本文のスクロールに盤面を追従させます"
-          >
-            連動 {autoFollow ? "ON" : "OFF"}
+          <button type="button" onClick={() => setTreeOpen(true)}>
+            分岐
           </button>
-          <button type="button" onClick={toggleFlip} title="盤面を反転します">
-            反転
-          </button>
+          {layoutMode === "linked" && (
+            <button type="button" className={editing ? "is-on" : ""} onClick={toggleEditing}>
+              {editing ? "編集中" : "閲覧中"}
+            </button>
+          )}
         </div>
       </header>
 
-      <main className="app-main">
-        <aside className="pane pane--tree">
-          <h2 className="pane-title">分岐</h2>
-          <MoveTreeView />
-        </aside>
+      {panelOpen && (
+        <div className="compare-panel">
+          <p className="compare-lead">
+            紙面の構造を決めるための切り替えです。実機で触って、どれが「本らしい」か見てください。
+          </p>
 
-        <section className="pane pane--board">
-          <Board
-            sfen={currentNode.sfen}
-            lastMoveUsi={currentNode.usi}
-            flipped={flipped}
-            interactive={editing}
-            onMove={playMove}
-          />
-          <div className="board-status">
-            <span className="ply">{ply === 0 ? "開始局面" : `${ply}手目`}</span>
-            <span className="move-text">{ply === 0 ? "" : moveText}</span>
-          </div>
-          <nav className="board-nav" aria-label="手順の移動">
-            <button type="button" onClick={goToStart} aria-label="最初へ">
-              ⏮
-            </button>
-            <button type="button" onClick={goBack} aria-label="1手戻る">
-              ◀
-            </button>
-            <button type="button" onClick={goForward} aria-label="1手進む">
-              ▶
-            </button>
-            <button type="button" onClick={goToEnd} aria-label="最後へ">
-              ⏭
-            </button>
-            <button
-              type="button"
-              className="board-nav-tree"
-              onClick={() => setTreeOpen(true)}
-            >
-              分岐
-            </button>
-          </nav>
-          {editing && (
-            <p className="board-hint">
-              駒をタップして選び、移動先をタップします。既存の手と違う手を指すと
-              新しい分岐になります。
+          <fieldset className="compare-group">
+            <legend>紙面の構造</legend>
+            <div className="compare-options">
+              {LAYOUTS.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={layoutMode === item.key ? "is-on" : ""}
+                  onClick={() => setLayoutMode(item.key)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <p className="compare-note">{layoutNote}</p>
+          </fieldset>
+
+          <fieldset className="compare-group">
+            <legend>図面の振る舞い</legend>
+            <div className="compare-options">
+              {BEHAVIORS.map((item) => (
+                <button
+                  key={String(item.key)}
+                  type="button"
+                  className={diagramBehavior === item.key ? "is-on" : ""}
+                  onClick={() => setDiagramBehavior(item.key)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <p className="compare-note">
+              {BEHAVIORS.find((item) => item.key === diagramBehavior)?.note}
             </p>
-          )}
-        </section>
+          </fieldset>
 
-        <section className="pane pane--reader">
-          <Reader />
-        </section>
+          <fieldset className="compare-group">
+            <legend>組方向</legend>
+            <div className="compare-options">
+              <button
+                type="button"
+                className={writingMode === "horizontal" ? "is-on" : ""}
+                onClick={() => setWritingMode("horizontal")}
+              >
+                横書き
+              </button>
+              <button
+                type="button"
+                className={writingMode === "vertical" ? "is-on" : ""}
+                onClick={() => setWritingMode("vertical")}
+              >
+                縦書き
+              </button>
+            </div>
+          </fieldset>
+
+          <fieldset className="compare-group">
+            <legend>分岐ツリーの向き</legend>
+            <div className="compare-options">
+              <button
+                type="button"
+                className={treeOrientation === "vertical" ? "is-on" : ""}
+                onClick={() => setTreeOrientation("vertical")}
+              >
+                縦に伸ばす
+              </button>
+              <button
+                type="button"
+                className={treeOrientation === "horizontal" ? "is-on" : ""}
+                onClick={() => setTreeOrientation("horizontal")}
+              >
+                横に伸ばす
+              </button>
+            </div>
+          </fieldset>
+        </div>
+      )}
+
+      <main className="app-main">
+        {layoutMode === "paged" && <PagedLayout />}
+        {layoutMode === "chapter-page" && <ChapterPageLayout />}
+        {layoutMode === "scroll" && <ScrollLayout />}
+        {layoutMode === "linked" && <LinkedLayout />}
       </main>
 
-      {/* スマホでは分岐ツリーをボトムシートとして開く（F-3-8）。 */}
       {treeOpen && (
         <div className="sheet-backdrop" onClick={() => setTreeOpen(false)}>
           <div className="sheet" onClick={(event) => event.stopPropagation()}>

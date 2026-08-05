@@ -7,7 +7,7 @@
 
 import { create } from "zustand";
 import type { Move } from "tsshogi";
-import type { Book, Chapter, MoveNode } from "../types/book";
+import type { Book, Chapter, DiagramBehavior, MoveNode } from "../types/book";
 import { appendMove, findNode, findParent, findPath } from "../shogi/tree";
 import { createSampleBook } from "../data/sampleBook";
 
@@ -16,6 +16,23 @@ import { createSampleBook } from "../data/sampleBook";
  * 無限ループしないよう、変更元を記録して追従の要否を判断する。
  */
 export type NavSource = "text" | "board" | "tree" | "init";
+
+/**
+ * 紙面の構造。どれを本命にするかを決めるため、比較できるようすべて用意してある。
+ *
+ *  paged        : ページめくり型。紙の棋書に一番近いが、画面幅が可変なので
+ *                 電子書籍と同じリフロー（内容量に応じた再分割）が要る
+ *  chapter-page : 章＝ページ。ページをめくる感覚を残しつつリフローは不要
+ *  scroll       : 縦スクロール。図は本文の流れの中に置く
+ *  linked       : 盤を別ペインに固定し、本文スクロールに追従させる（初版の形）
+ */
+export type LayoutMode = "paged" | "chapter-page" | "scroll" | "linked";
+
+/** 本文の組方向。既定は横書き。 */
+export type WritingMode = "horizontal" | "vertical";
+
+/** 分岐ツリーの伸びる向き。 */
+export type TreeOrientation = "horizontal" | "vertical";
 
 type BookState = {
   book: Book;
@@ -28,6 +45,14 @@ type BookState = {
   autoFollow: boolean;
   /** 閲覧モードと編集モードは同一レイアウトの切り替えとする（要件定義書 V-3）。 */
   editing: boolean;
+  /** 紙面の構造。比較検討中のため切り替えられる。 */
+  layoutMode: LayoutMode;
+  /** 本文の組方向。 */
+  writingMode: WritingMode;
+  /** 分岐ツリーの向き。 */
+  treeOrientation: TreeOrientation;
+  /** 図面の振る舞いの一括上書き。null なら各図の設定に従う。 */
+  diagramBehavior: DiagramBehavior | null;
   /** 木を破壊的に更新したことを React に伝えるためのカウンタ。 */
   revision: number;
 
@@ -46,6 +71,10 @@ type BookState = {
   toggleFlip: () => void;
   toggleAutoFollow: () => void;
   toggleEditing: () => void;
+  setLayoutMode: (mode: LayoutMode) => void;
+  setWritingMode: (mode: WritingMode) => void;
+  setTreeOrientation: (orientation: TreeOrientation) => void;
+  setDiagramBehavior: (behavior: DiagramBehavior | null) => void;
   loadBook: (book: Book) => void;
 };
 
@@ -58,6 +87,10 @@ export function createBookStore(initialBook: Book) {
     flipped: false,
     autoFollow: true,
     editing: false,
+    layoutMode: "scroll",
+    writingMode: "horizontal",
+    treeOrientation: "vertical",
+    diagramBehavior: null,
     revision: 0,
 
     chapter: () => get().book.chapters[get().chapterIndex],
@@ -130,6 +163,10 @@ export function createBookStore(initialBook: Book) {
     toggleFlip: () => set({ flipped: !get().flipped }),
     toggleAutoFollow: () => set({ autoFollow: !get().autoFollow }),
     toggleEditing: () => set({ editing: !get().editing }),
+    setLayoutMode: (mode) => set({ layoutMode: mode }),
+    setWritingMode: (mode) => set({ writingMode: mode }),
+    setTreeOrientation: (orientation) => set({ treeOrientation: orientation }),
+    setDiagramBehavior: (behavior) => set({ diagramBehavior: behavior }),
 
     loadBook: (book) =>
       set({

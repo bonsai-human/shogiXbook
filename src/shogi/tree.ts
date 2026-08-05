@@ -141,6 +141,22 @@ export function formatNodeMove(parent: MoveNode | null, node: MoveNode): string 
   return formatMove(position, move, { compatible: true });
 }
 
+/**
+ * 祖先ノードから子孫ノードまでの経路を返す（両端を含む）。
+ * from が to の祖先でない場合は null。図面が示す手順の切り出しに使う。
+ */
+export function pathBetween(
+  root: MoveNode,
+  fromId: string,
+  toId: string,
+): MoveNode[] | null {
+  const path = findPath(root, toId);
+  if (!path) return null;
+  const start = path.findIndex((node) => node.id === fromId);
+  if (start < 0) return null;
+  return path.slice(start);
+}
+
 /** ルートからの手数を返す。ルートは 0。 */
 export function plyOf(root: MoveNode, nodeId: string): number {
   const path = findPath(root, nodeId);
