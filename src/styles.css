@@ -1,33 +1,53 @@
 /*
  * shogiXbook のスタイル。
  *
- * 盤面そのものは shogi-player（Web Components）が Shadow DOM 内で描くため、
- * ここから中身のスタイルは触れない。ここで扱うのは紙面の組み方だけである。
+ * 狙いは棋書の紙面に見えること。具体的には
+ *   - クリーム色の紙に明朝体、行間広め、段落は一字下げ
+ *   - 図は本文より狭い幅で中央に置き、下に「第◯図」を添える
+ *   - 罫線や色面を増やさない（Webアプリ的な装飾を持ち込まない）
+ * 操作のための UI（ヘッダ、送りボタン）だけはゴシックにして本文と区別する。
+ *
+ * 盤そのものは shogi-player が Shadow DOM 内で描くため、ここからは触れない。
+ * 盤の色は --diagram-* を通して渡している（src/board/kishoStyle.ts）。
+ * CSS カスタムプロパティは Shadow DOM の境界を越えて継承される。
  */
 
 :root {
-  --bg: #faf8f4;
-  --surface: #ffffff;
-  --border: #ddd6c9;
-  --text: #23201b;
-  --text-dim: #6b645a;
-  --accent: #8a5a2b;
-  --accent-soft: #f0e3d2;
-  --sheet-backdrop: rgb(0 0 0 / 40%);
+  --paper: #fbf8f1;
+  --paper-edge: #e6ded0;
+  --ink: #1f1c17;
+  --ink-dim: #6f675b;
+  --accent: #7a4f24;
+  --accent-soft: #efe4d3;
+  --chrome: #f3efe7;
+  --backdrop: rgb(0 0 0 / 40%);
+
+  /* 図面（盤）の色。shogi-player の Shadow DOM へ継承される。 */
+  --diagram-board-bg: #ffffff;
+  --diagram-grid: hsl(30 10% 20% / 0.55);
+  --diagram-grid-outer: hsl(30 10% 15% / 0.9);
+  --diagram-coordinate: hsl(30 10% 30% / 0.85);
+
+  --serif: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", serif;
+  --sans: system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif;
 
   color-scheme: light dark;
-  font-family: system-ui, "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #16151a;
-    --surface: #1e1d24;
-    --border: #35333d;
-    --text: #ece9e3;
-    --text-dim: #9c968c;
-    --accent: #d8a76a;
-    --accent-soft: #3a3128;
+    --paper: #1a1815;
+    --paper-edge: #322d26;
+    --ink: #e9e3d8;
+    --ink-dim: #9a9184;
+    --accent: #d3a166;
+    --accent-soft: #382e22;
+    --chrome: #221f1b;
+
+    --diagram-board-bg: #262220;
+    --diagram-grid: hsl(35 15% 80% / 0.4);
+    --diagram-grid-outer: hsl(35 15% 85% / 0.7);
+    --diagram-coordinate: hsl(35 15% 75% / 0.75);
   }
 }
 
@@ -43,8 +63,9 @@ body,
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
+  background: var(--chrome);
+  color: var(--ink);
+  font-family: var(--serif);
   -webkit-text-size-adjust: 100%;
 }
 
@@ -54,7 +75,7 @@ button {
   cursor: pointer;
 }
 
-/* ---------- 全体 ---------- */
+/* ---------- 外枠（操作 UI） ---------- */
 
 .app {
   display: flex;
@@ -70,9 +91,9 @@ button {
   align-items: center;
   justify-content: space-between;
   padding: 0.45rem 0.9rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  font-family: system-ui, sans-serif;
+  border-bottom: 1px solid var(--paper-edge);
+  background: var(--chrome);
+  font-family: var(--sans);
 }
 
 .app-title {
@@ -84,7 +105,7 @@ button {
 
 .app-title h1 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -95,11 +116,11 @@ button {
 .app-actions button,
 .compare-options button {
   font: inherit;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   padding: 0.25rem 0.7rem;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--paper-edge);
   border-radius: 999px;
 }
 
@@ -127,21 +148,15 @@ button {
   display: flex;
 }
 
-/* ---------- 見比べパネル ---------- */
+/* ---------- 表示切り替えパネル ---------- */
 
 .compare-panel {
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+  border-bottom: 1px solid var(--paper-edge);
+  background: var(--chrome);
   padding: 0.6rem 0.9rem 0.8rem;
-  font-family: system-ui, sans-serif;
+  font-family: var(--sans);
   max-height: 45dvh;
   overflow-y: auto;
-}
-
-.compare-lead {
-  margin: 0 0 0.6rem;
-  font-size: 0.78rem;
-  color: var(--text-dim);
 }
 
 .compare-group {
@@ -153,7 +168,7 @@ button {
 .compare-group legend {
   font-size: 0.7rem;
   letter-spacing: 0.06em;
-  color: var(--text-dim);
+  color: var(--ink-dim);
   padding: 0;
   margin-bottom: 0.3rem;
 }
@@ -167,10 +182,10 @@ button {
 .compare-note {
   margin: 0.35rem 0 0;
   font-size: 0.72rem;
-  color: var(--text-dim);
+  color: var(--ink-dim);
 }
 
-/* ---------- レイアウト共通 ---------- */
+/* ---------- 紙面 ---------- */
 
 .layout {
   flex: 1;
@@ -181,133 +196,110 @@ button {
 }
 
 .layout-flow {
-  max-width: 40rem;
+  max-width: 34rem;
   margin: 0 auto;
-  line-height: 2;
 }
 
+/* 章タイトル。棋書の中扉に寄せて、罫線ではなく余白で見せる。 */
 .chapter-title {
-  font-size: 1.2rem;
-  margin: 0 0 1rem;
-  padding-bottom: 0.4rem;
-  border-bottom: 2px solid var(--border);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin: 0 0 2rem;
+  color: var(--ink-dim);
 }
 
 .block {
-  margin: 0 0 1.1rem;
+  margin: 0;
 }
 
 .block h2 {
-  font-size: 1.15rem;
-  margin: 1.2rem 0 0.6rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin: 1.6rem 0 0.9rem;
 }
 
 .block h3 {
-  font-size: 1rem;
-  margin: 1rem 0 0.5rem;
+  font-size: 0.98rem;
+  font-weight: 600;
+  margin: 1.4rem 0 0.7rem;
 }
 
+/* 本文。段落は一字下げ、行間は広めに。 */
 .block p {
-  margin: 0 0 0.8rem;
+  margin: 0 0 1.1em;
+  line-height: 2.05;
   text-indent: 1em;
+  letter-spacing: 0.02em;
+  text-align: justify;
 }
 
 .block--diagram,
 .block--quiz {
   break-inside: avoid;
-  text-indent: 0;
 }
 
 .move-link {
   background: none;
   border: none;
   padding: 0;
-  color: var(--accent);
-  text-decoration: underline;
+  color: inherit;
   font: inherit;
+  border-bottom: 1px solid var(--accent);
 }
 
 /* ---------- 図面 ---------- */
 
 .diagram {
-  margin: 1.2rem auto;
-  max-width: 22rem;
+  margin: 1.6rem auto 1.9rem;
+  max-width: 20rem;
   text-align: center;
   break-inside: avoid;
-  /* 縦書きの本文中でも図は正立させる。 */
+  /* 縦組みの本文中でも図は正立させる。 */
   writing-mode: horizontal-tb;
-}
-
-.diagram figcaption {
-  font-size: 0.8rem;
-  color: var(--text-dim);
-  margin-top: 0.3rem;
 }
 
 .diagram-board {
   margin: 0 auto;
 }
 
+/* 「第1図」。棋書では図の下に小さく添える。 */
+.diagram figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+}
+
 .diagram-controls {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
-  margin-top: 0.4rem;
-  font-family: system-ui, sans-serif;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  font-family: var(--sans);
 }
 
 .diagram-controls button {
-  min-width: 2.6rem;
-  min-height: 2.4rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  min-width: 2.4rem;
+  min-height: 2.2rem;
+  background: transparent;
+  border: 1px solid var(--paper-edge);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: var(--ink-dim);
 }
 
 .diagram-controls button:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: default;
 }
 
 .diagram-move {
-  min-width: 8rem;
-  font-size: 0.8rem;
-  color: var(--text-dim);
-}
-
-.diagram-open {
-  display: block;
-  width: 100%;
-  background: none;
-  border: none;
-  padding: 0;
-}
-
-.diagram-open-hint {
-  display: block;
-  margin-top: 0.25rem;
-  font-size: 0.72rem;
-  color: var(--text-dim);
-  font-family: system-ui, sans-serif;
-}
-
-.diagram-chip {
-  display: inline-block;
-  margin: 0.4rem 0;
-  padding: 0.3rem 0.8rem;
-  background: var(--surface);
-  border: 1px solid var(--accent);
-  border-radius: 999px;
-  color: var(--accent);
-  font-size: 0.8rem;
-  font-family: system-ui, sans-serif;
-  writing-mode: horizontal-tb;
-}
-
-.diagram-chip--active {
-  background: var(--accent-soft);
-  font-weight: 600;
+  min-width: 7.5rem;
+  font-size: 0.75rem;
+  color: var(--ink-dim);
 }
 
 .diagram--error {
@@ -315,39 +307,16 @@ button {
   font-size: 0.85rem;
 }
 
-.diagram-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  background: var(--sheet-backdrop);
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-}
-
-.diagram-modal-inner {
-  background: var(--bg);
-  border-radius: 10px;
-  padding: 0.8rem;
-  width: min(100%, 26rem);
-  max-height: 90dvh;
-  overflow-y: auto;
-}
-
-.diagram-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-  font-family: system-ui, sans-serif;
-  font-size: 0.85rem;
-}
-
-.diagram-modal-header button {
-  border: 1px solid var(--border);
+.diagram-chip {
+  display: inline-block;
+  margin: 0.4rem 0;
+  padding: 0.3rem 0.8rem;
+  background: transparent;
+  border: 1px solid var(--accent);
   border-radius: 999px;
-  background: var(--surface);
-  padding: 0.25rem 0.75rem;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-family: var(--sans);
 }
 
 .board-host {
@@ -359,86 +328,70 @@ button {
   padding: 2rem 0;
   text-align: center;
   font-size: 0.8rem;
-  color: var(--text-dim);
-  font-family: system-ui, sans-serif;
+  color: var(--ink-dim);
+  font-family: var(--sans);
 }
 
-/* 主図（振る舞い③） */
+/* ---------- ページめくり ---------- */
 
-.layout-main-diagram {
-  padding: 0.6rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.layout-main-diagram--sticky {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-}
-
-.main-diagram {
-  max-width: 20rem;
-  margin: 0 auto;
-  writing-mode: horizontal-tb;
-}
-
-/* ---------- 構造 C: スクロール ---------- */
-
-.layout--scroll {
-  overflow-y: auto;
-}
-
-.layout--scroll .layout-flow {
-  padding: 1.5rem 1.2rem 4rem;
-}
-
-/* ---------- 構造 B: 章＝ページ ---------- */
-
-.layout--chapter-page {
-  min-height: 0;
-}
-
-.layout--chapter-page .page-sheet {
+/*
+ * 1 段 = 1 ページ。段の幅を紙面の幅に合わせ、高さを固定して column-fill: auto に
+ * すると、ブラウザが内容を上から順に段へ流し込む。これがページ分割になる。
+ * column-width はパーセント指定を受け付けないので、幅は実測値を JS から渡す。
+ */
+.paged-viewport {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  padding: 1.5rem 1.2rem 2rem;
-  background: var(--surface);
-  margin: 0.8rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 8%);
+  width: 100%;
+  max-width: 42rem;
+  margin: 1rem auto 0;
+  overflow: hidden;
+  padding: 2.2rem 2.4rem 1.4rem;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 6%);
 }
 
+.paged-content {
+  height: 100%;
+  column-width: var(--page-width, auto);
+  column-gap: var(--page-gap, 48px);
+  column-fill: auto;
+  transition: transform 0.25s ease;
+}
+
+/* ノンブル。紙面の下に控えめに置く。 */
 .page-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.5rem 0.9rem calc(0.5rem + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--border);
-  background: var(--surface);
-  font-family: system-ui, sans-serif;
+  max-width: 42rem;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0.5rem 0.9rem calc(0.6rem + env(safe-area-inset-bottom));
+  font-family: var(--sans);
 }
 
 .page-nav button {
-  min-height: 2.6rem;
-  padding: 0 1rem;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 0.85rem;
+  min-height: 2.4rem;
+  padding: 0 0.9rem;
+  background: transparent;
+  border: 1px solid var(--paper-edge);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: var(--ink-dim);
 }
 
 .page-nav button:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: default;
 }
 
 .page-indicator {
-  font-size: 0.78rem;
-  color: var(--text-dim);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim);
   text-align: center;
   min-width: 0;
   overflow: hidden;
@@ -446,56 +399,22 @@ button {
   white-space: nowrap;
 }
 
-/* ---------- 構造 A: ページめくり ---------- */
+/* ---------- スクロール ---------- */
 
-/* 紙面。本として読みやすい幅に収めて中央に置く。 */
-.paged-viewport {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  max-width: 46rem;
-  margin: 0.8rem auto 0;
-  overflow: hidden;
-  padding: 1.2rem 1.2rem 0.6rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+.layout--scroll {
+  overflow-y: auto;
+  background: var(--paper);
 }
 
-/* 縦書きの紙面は横スクロールで送る。 */
-.app--vertical .paged-viewport {
-  max-width: none;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
+.layout--scroll .layout-flow {
+  padding: 2rem 1.4rem 4rem;
 }
 
-.app--vertical .paged-viewport::-webkit-scrollbar {
-  display: none;
-}
-
-.app--vertical .paged-content {
-  height: 100%;
-  transform: none !important;
-}
-
-/*
- * 1 段 = 1 ページ。高さを固定して column-fill: auto にすると、
- * ブラウザが内容を上から順に段へ流し込む。これがページ分割になる。
- */
-.paged-content {
-  height: 100%;
-  column-width: var(--page-width, auto);
-  column-gap: var(--page-gap, 48px);
-  column-fill: auto;
-  line-height: 2;
-  transition: transform 0.25s ease;
-}
-
-/* ---------- 構造 D: 連動（初版） ---------- */
+/* ---------- 連動（検討向け） ---------- */
 
 .layout--linked {
   flex-direction: row;
+  background: var(--paper);
 }
 
 .layout--linked .pane {
@@ -507,15 +426,15 @@ button {
 
 .pane--tree {
   width: 250px;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--paper-edge);
   overflow-y: auto;
   padding: 0.75rem;
 }
 
 .pane--board {
-  width: min(42%, 400px);
-  border-right: 1px solid var(--border);
-  padding: 0.75rem;
+  width: min(42%, 380px);
+  border-right: 1px solid var(--paper-edge);
+  padding: 0.9rem;
   gap: 0.5rem;
   align-items: center;
 }
@@ -526,51 +445,52 @@ button {
 
 .pane-title {
   margin: 0 0 0.5rem;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   letter-spacing: 0.08em;
-  color: var(--text-dim);
-  font-family: system-ui, sans-serif;
+  color: var(--ink-dim);
+  font-family: var(--sans);
 }
 
 .board-nav {
   display: flex;
-  gap: 0.35rem;
+  gap: 0.3rem;
   width: 100%;
+  font-family: var(--sans);
 }
 
 .board-nav button {
   flex: 1;
-  min-height: 2.6rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  min-height: 2.4rem;
+  background: transparent;
+  border: 1px solid var(--paper-edge);
+  border-radius: 4px;
+  color: var(--ink-dim);
 }
 
 .board-hint {
   margin: 0;
-  font-size: 0.75rem;
-  color: var(--text-dim);
+  font-size: 0.72rem;
+  color: var(--ink-dim);
   text-align: center;
-  font-family: system-ui, sans-serif;
+  font-family: var(--sans);
 }
 
 .reader {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 1.25rem 1.5rem;
+  padding: 1.6rem 1.8rem;
   scroll-behavior: smooth;
 }
 
 .reader .block {
-  padding: 0.5rem 0.75rem;
-  border-left: 3px solid transparent;
-  max-width: 42rem;
+  padding: 0.4rem 0.7rem;
+  border-left: 2px solid transparent;
+  max-width: 34rem;
 }
 
 .reader .block--active {
   border-left-color: var(--accent);
-  background: var(--accent-soft);
 }
 
 .reader-tail {
@@ -579,14 +499,21 @@ button {
 
 /* ---------- 次の一手 ---------- */
 
+/* 次の一手。枠で囲うと Web の部品に見えるので、上下の罫だけで区切る。 */
 .quiz {
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  background: var(--surface);
-  font-family: system-ui, sans-serif;
-  font-size: 0.9rem;
+  border: none;
+  border-top: 1px solid var(--paper-edge);
+  border-bottom: 1px solid var(--paper-edge);
+  padding: 0.9rem 0.2rem;
+  margin: 1.4rem 0;
+  background: transparent;
   writing-mode: horizontal-tb;
+}
+
+.quiz p {
+  margin: 0 0 0.6em;
+  line-height: 2;
+  text-indent: 1em;
 }
 
 .quiz-header {
@@ -594,29 +521,38 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  margin-bottom: 0.3rem;
 }
 
 .quiz-badge {
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.quiz-badge::before {
+  content: "【";
+}
+
+.quiz-badge::after {
+  content: "】";
 }
 
 .quiz-goto,
 .quiz-reveal {
   background: none;
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 4px;
   padding: 0.25rem 0.7rem;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  font-family: var(--sans);
+  color: var(--ink-dim);
 }
 
 .quiz-hint {
-  font-size: 0.8rem;
-  color: var(--text-dim);
+  font-size: 0.78rem;
+  color: var(--ink-dim);
 }
 
 .quiz-result {
@@ -638,17 +574,16 @@ button {
 }
 
 .quiz-explanation {
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px dashed var(--border);
-  font-size: 0.9rem;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--paper-edge);
 }
 
 /* ---------- 分岐ツリー ---------- */
 
 .tree {
-  font-size: 0.85rem;
-  font-family: system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-family: var(--sans);
 }
 
 .tree-node {
@@ -657,15 +592,15 @@ button {
   gap: 0.35rem;
   padding: 0.25rem 0.45rem;
   min-height: 2rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: 1px solid var(--paper-edge);
   border-radius: 4px;
   white-space: nowrap;
 }
 
 .tree-ply {
-  font-size: 0.68rem;
-  color: var(--text-dim);
+  font-size: 0.66rem;
+  color: var(--ink-dim);
   min-width: 1.2em;
   text-align: right;
 }
@@ -678,15 +613,15 @@ button {
 }
 
 .tree-variation {
-  border-left: 2px solid var(--border);
+  border-left: 2px solid var(--paper-edge);
   padding-left: 0.5rem;
   margin: 0.3rem 0 0.3rem 0.75rem;
 }
 
 .tree-variation-label {
   display: block;
-  font-size: 0.7rem;
-  color: var(--text-dim);
+  font-size: 0.68rem;
+  color: var(--ink-dim);
   margin-bottom: 0.15rem;
 }
 
@@ -715,7 +650,7 @@ button {
 .sheet-backdrop {
   position: fixed;
   inset: 0;
-  background: var(--sheet-backdrop);
+  background: var(--backdrop);
   display: flex;
   align-items: flex-end;
   z-index: 10;
@@ -725,7 +660,7 @@ button {
   width: 100%;
   max-height: 70dvh;
   overflow: auto;
-  background: var(--bg);
+  background: var(--paper);
   border-radius: 12px 12px 0 0;
   padding: 0.75rem 1rem calc(1rem + env(safe-area-inset-bottom));
 }
@@ -735,75 +670,60 @@ button {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.5rem;
-  font-family: system-ui, sans-serif;
+  font-family: var(--sans);
 }
 
 .sheet-header h2 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 .sheet-header button {
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--paper-edge);
   border-radius: 999px;
   padding: 0.25rem 0.75rem;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
 }
 
-/* ---------- 縦書き ---------- */
+/* ---------- 縦組み（ページめくりのみ） ---------- */
 
-.app--vertical .layout-flow,
 .app--vertical .paged-content {
   writing-mode: vertical-rl;
   text-orientation: upright;
-}
-
-/* 縦書きでは文字が縦に流れ、行が右から左へ積まれるので段組みは要らない。
-   高さを固定しておけば、はみ出した分がそのまま次の紙面になる。 */
-.app--vertical .paged-content {
   column-width: auto;
   columns: auto;
+  transform: none !important;
 }
 
-.app--vertical .layout--scroll {
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-.app--vertical .layout--scroll .layout-flow,
-.app--vertical .layout--chapter-page .layout-flow {
-  height: 100%;
+.app--vertical .paged-viewport {
   max-width: none;
-  max-height: none;
-  margin: 0;
-}
-
-.app--vertical .layout--chapter-page .page-sheet {
   overflow-x: auto;
   overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.app--vertical .paged-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+/* 縦組みの中では、横書きの箱に幅の基準がないので明示しておく。 */
+.app--vertical .diagram,
+.app--vertical .quiz {
+  width: 19rem;
+  max-width: 19rem;
 }
 
 .app--vertical .chapter-title {
-  border-bottom: none;
-  border-right: 2px solid var(--border);
-  padding: 0 0 0 0.4rem;
-  margin: 0 0 0 1rem;
-}
-
-/* 縦組みの中では横書きの箱に幅の基準がないので、明示しておく。 */
-.app--vertical .quiz,
-.app--vertical .diagram,
-.app--vertical .main-diagram {
-  width: 20rem;
-  max-width: 20rem;
+  margin: 0 0 0 1.6rem;
 }
 
 .app--vertical .block p {
-  text-indent: 1em;
+  line-height: 2.1;
+  text-align: start;
 }
 
-/* ---------- タブレット ---------- */
+/* ---------- スマホ ---------- */
 
 @media (max-width: 1024px) {
   .pane--tree {
@@ -811,16 +731,27 @@ button {
   }
 }
 
-/* ---------- スマホ縦 ---------- */
-
 @media (max-width: 700px) {
   .app-header {
     padding: 0.4rem 0.6rem;
   }
 
   .app-title h1 {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     max-width: 8rem;
+  }
+
+  .paged-viewport {
+    margin: 0.5rem auto 0;
+    padding: 1.3rem 1.2rem 0.8rem;
+  }
+
+  .layout--scroll .layout-flow {
+    padding: 1.4rem 1.1rem 3rem;
+  }
+
+  .diagram {
+    max-width: min(100%, 20rem);
   }
 
   .layout--linked {
@@ -830,29 +761,11 @@ button {
   .layout--linked .pane--board {
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--paper-edge);
     padding: 0.5rem;
   }
 
   .layout--linked .pane--board .board-host {
     max-width: min(100%, 38dvh);
-  }
-
-  .layout--scroll .layout-flow,
-  .layout--chapter-page .page-sheet {
-    padding: 1rem 0.9rem 3rem;
-  }
-
-  .layout--chapter-page .page-sheet {
-    margin: 0.5rem;
-  }
-
-  .paged-viewport {
-    margin: 0.5rem 0.5rem 0;
-    padding: 0.9rem 0.9rem 0.4rem;
-  }
-
-  .diagram {
-    max-width: 100%;
   }
 }

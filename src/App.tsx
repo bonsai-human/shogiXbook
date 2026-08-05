@@ -1,33 +1,23 @@
 /**
  * アプリの外枠。
  *
- * いまは「紙面の構造をどれにするか」を決めるための見比べ用の器になっている。
- * 4 つの構造と、図面の 3 つの振る舞い、組方向、分岐ツリーの向きを
- * その場で切り替えられる。決まったら切り替え UI は畳んで既定を固定する。
+ * 紙面の構造はページめくり型に決まったので、それを既定にしてある。
+ * 残りの切り替え（スクロール / 連動、組方向、分岐ツリーの向き）は
+ * 「表示」から開いて変更できる。
  */
 
 import { useState } from "react";
 import { PagedLayout } from "./layouts/PagedLayout";
-import { ChapterPageLayout } from "./layouts/ChapterPageLayout";
 import { ScrollLayout } from "./layouts/ScrollLayout";
 import { LinkedLayout } from "./layouts/LinkedLayout";
 import { MoveTreeView } from "./components/MoveTreeView";
 import { useBookStore } from "./store/bookStore";
 import type { LayoutMode } from "./store/bookStore";
-import type { DiagramBehavior } from "./types/book";
 
 const LAYOUTS: { key: LayoutMode; label: string; note: string }[] = [
-  { key: "paged", label: "ページめくり", note: "紙の棋書に一番近い。内容量に応じて再分割する" },
-  { key: "chapter-page", label: "章＝ページ", note: "めくる感覚を残しつつ再分割は不要" },
-  { key: "scroll", label: "スクロール", note: "図は本文の流れの中。記事に近い" },
-  { key: "linked", label: "連動（初版）", note: "盤を固定し本文スクロールに追従させる" },
-];
-
-const BEHAVIORS: { key: DiagramBehavior | null; label: string; note: string }[] = [
-  { key: null, label: "本の指定どおり", note: "図ごとに設定された振る舞いを使う" },
-  { key: "playable", label: "①その場で進む", note: "図の下の送りで手順を追える" },
-  { key: "static", label: "②静止図", note: "タップしたときだけ拡大して動かす" },
-  { key: "page-main", label: "③主図ひとつ", note: "紙面の主図を本文中の指示で差し替える" },
+  { key: "paged", label: "ページめくり", note: "紙の棋書に近い組み方。内容量と画面に応じて分割し直す" },
+  { key: "scroll", label: "スクロール", note: "図は本文の流れの中。狭い画面向けの代替" },
+  { key: "linked", label: "連動", note: "盤を固定し本文スクロールに追従させる。検討向け" },
 ];
 
 export function App() {
@@ -40,18 +30,17 @@ export function App() {
   const setWritingMode = useBookStore((state) => state.setWritingMode);
   const treeOrientation = useBookStore((state) => state.treeOrientation);
   const setTreeOrientation = useBookStore((state) => state.setTreeOrientation);
-  const diagramBehavior = useBookStore((state) => state.diagramBehavior);
-  const setDiagramBehavior = useBookStore((state) => state.setDiagramBehavior);
   const editing = useBookStore((state) => state.editing);
   const toggleEditing = useBookStore((state) => state.toggleEditing);
 
   const [panelOpen, setPanelOpen] = useState(false);
   const [treeOpen, setTreeOpen] = useState(false);
 
-  const layoutNote = LAYOUTS.find((item) => item.key === layoutMode)?.note ?? "";
+  // 縦組みはページめくりでのみ成立する。ほかの組み方では横書きに戻す。
+  const effectiveWriting = layoutMode === "paged" ? writingMode : "horizontal";
 
   return (
-    <div className={`app app--${writingMode}`}>
+    <div className={`app app--${effectiveWriting}`}>
       <header className="app-header">
         <div className="app-title">
           <h1>{book.meta.title}</h1>
@@ -73,7 +62,7 @@ export function App() {
             className={panelOpen ? "is-on" : ""}
             onClick={() => setPanelOpen(!panelOpen)}
           >
-            見比べ
+            表示
           </button>
           <button type="button" onClick={() => setTreeOpen(true)}>
             分岐
@@ -88,12 +77,8 @@ export function App() {
 
       {panelOpen && (
         <div className="compare-panel">
-          <p className="compare-lead">
-            紙面の構造を決めるための切り替えです。実機で触って、どれが「本らしい」か見てください。
-          </p>
-
           <fieldset className="compare-group">
-            <legend>紙面の構造</legend>
+            <legend>紙面の組み方</legend>
             <div className="compare-options">
               {LAYOUTS.map((item) => (
                 <button
@@ -106,25 +91,8 @@ export function App() {
                 </button>
               ))}
             </div>
-            <p className="compare-note">{layoutNote}</p>
-          </fieldset>
-
-          <fieldset className="compare-group">
-            <legend>図面の振る舞い</legend>
-            <div className="compare-options">
-              {BEHAVIORS.map((item) => (
-                <button
-                  key={String(item.key)}
-                  type="button"
-                  className={diagramBehavior === item.key ? "is-on" : ""}
-                  onClick={() => setDiagramBehavior(item.key)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
             <p className="compare-note">
-              {BEHAVIORS.find((item) => item.key === diagramBehavior)?.note}
+              {LAYOUTS.find((item) => item.key === layoutMode)?.note}
             </p>
           </fieldset>
 
@@ -146,6 +114,9 @@ export function App() {
                 縦書き
               </button>
             </div>
+            <p className="compare-note">
+              縦書きはページめくりでのみ組める。ほかの組み方では横書きになる。
+            </p>
           </fieldset>
 
           <fieldset className="compare-group">
@@ -172,7 +143,6 @@ export function App() {
 
       <main className="app-main">
         {layoutMode === "paged" && <PagedLayout />}
-        {layoutMode === "chapter-page" && <ChapterPageLayout />}
         {layoutMode === "scroll" && <ScrollLayout />}
         {layoutMode === "linked" && <LinkedLayout />}
       </main>

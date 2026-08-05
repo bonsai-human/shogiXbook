@@ -11,13 +11,7 @@
 
 import { InitialPositionSFEN } from "tsshogi";
 import { BOOK_SCHEMA_VERSION } from "../types/book";
-import type {
-  Book,
-  Chapter,
-  ContentBlock,
-  DiagramBehavior,
-  MoveNode,
-} from "../types/book";
+import type { Book, Chapter, ContentBlock, MoveNode } from "../types/book";
 import { appendUSIMove, createRoot, newNodeId } from "../shogi/tree";
 
 /** 指定ノードから USI 手順を順に積み、通過したノードを返す。 */
@@ -39,23 +33,13 @@ function text(markdown: string, nodeId?: string): ContentBlock {
   return { id: newNodeId(), type: "text", nodeId, markdown };
 }
 
-function diagram(
-  from: MoveNode,
-  to: MoveNode | null,
-  behavior: DiagramBehavior,
-  caption: string,
-): ContentBlock {
+function diagram(from: MoveNode, to: MoveNode | null, caption: string): ContentBlock {
   return {
     id: newNodeId(),
     type: "diagram",
     nodeId: from.id,
     markdown: "",
-    diagram: {
-      fromNodeId: from.id,
-      toNodeId: to?.id,
-      behavior,
-      caption,
-    },
+    diagram: { fromNodeId: from.id, toNodeId: to?.id, caption },
   };
 }
 
@@ -96,7 +80,7 @@ function buildChapter1(): Chapter {
       "続いて ▲2六歩 と飛車先を伸ばす。ここが後手にとって最初の分かれ道になる。" +
         "本書で扱う四間飛車を目指すなら △4四歩 と角道を止める。",
     ),
-    diagram(line[2], line[5], "playable", "第1図"),
+    diagram(line[2], line[5], "第1図"),
     text(
       "第1図から △4四歩 ▲2五歩 △3三角 と進む。" +
         "△3三角 は 2筋の突破を受ける定番の一手で、これを省くと ▲2四歩 △同歩 ▲同飛 で" +
@@ -124,7 +108,7 @@ function buildChapter1(): Chapter {
           "角道を止めた形と組み合わせてノーマル四間飛車になる。",
       },
     },
-    diagram(line[7], null, "static", "第2図"),
+    diagram(line[7], null, "第2図"),
     text(
       "第2図が四間飛車の基本形である。ここから ▲6八玉 △6二玉 と、" +
         "お互いに玉を安全な場所へ移していく。振り飛車は飛車と反対側に玉を囲うのが原則で、" +
@@ -141,7 +125,7 @@ function buildChapter1(): Chapter {
         "この場合はお互いに飛車先を伸ばし合う相居飛車の戦いになり、" +
         "本書の範囲からは外れるが、相手がこう来る可能性は知っておくべきである。",
     ),
-    diagram(branch[0], branch[3], "playable", "第3図"),
+    diagram(branch[0], branch[3], "第3図"),
     text(
       "▲2五歩 △8五歩 ▲7八金 と進む。▲7八金 は 8筋の突破を受けた自然な一手で、" +
         "ここから角換わりや矢倉といった相居飛車の戦型へ分かれていく。",
@@ -185,7 +169,7 @@ function buildChapter2(): Chapter {
         "途中局面から解説を始めたい場合はこちらを使う。" +
         "この章は角換わりの出だしまで進んだ局面から始まっている。",
     ),
-    diagram(root, line[3], "playable", "第4図"),
+    diagram(root, line[3], "第4図"),
     text(
       "先手は角を持ち駒にしているので、図の下にある駒台の表示も確認できる。" +
         "▲3八銀 △6二銀 ▲3六歩 △5二玉 と、お互いに駒組みを進めていく形である。",

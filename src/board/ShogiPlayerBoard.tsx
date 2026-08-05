@@ -12,6 +12,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SHOGI_PLAYER_TAG, loadShogiPlayer } from "./shogiPlayerLoader";
+import {
+  KISHO_BOARD_CSS,
+  KISHO_BOARD_VARIANT,
+  KISHO_PIECE_VARIANT,
+} from "./kishoStyle";
 import { appendedMoves } from "../shogi/usi";
 
 export type BoardMode = "view" | "play" | "edit";
@@ -31,7 +36,13 @@ export type ShogiPlayerBoardProps = {
   layout?: "horizontal" | "vertical";
   /** 座標（筋・段）を表示する。 */
   coordinate?: boolean;
-  /** 盤の左右タップで手数を送る。play モードでは駒が動かせなくなるので注意。 */
+  /**
+   * 盤の左右タップで手数を送る。
+   *
+   * これを false にすると、view モードでも盤上の駒を自由に動かせてしまう
+   * （shogi-player の仕様）。読み物の図面でそれが起きると編集画面に見えるので、
+   * view モードでは既定で true にしてある。
+   */
   overlayNav?: boolean;
   /** 手が指されたときに、追加された指し手（USI）を返す。 */
   onMoves?: (usiMoves: string[]) => void;
@@ -48,7 +59,7 @@ export function ShogiPlayerBoard({
   mode = "view",
   layout = "vertical",
   coordinate = true,
-  overlayNav = false,
+  overlayNav,
   onMoves,
   onTurnChange,
   className,
@@ -124,7 +135,13 @@ export function ShogiPlayerBoard({
     element.sp_mode = mode;
     element.sp_layout = layout;
     element.sp_coordinate = coordinate;
-    element.sp_overlay_nav = overlayNav;
+    element.sp_overlay_nav = overlayNav ?? mode === "view";
+    // 棋書の紙面に合わせた見た目。詳細は kishoStyle.ts を参照。
+    element.sp_piece_variant = KISHO_PIECE_VARIANT;
+    element.sp_board_variant = KISHO_BOARD_VARIANT;
+    element.sp_pass_css = KISHO_BOARD_CSS;
+    // 対局者名の下に敷かれる色帯。紙面には不要。
+    element.sp_balloon = false;
   }, [ready, position, turn, mode, layout, coordinate, overlayNav]);
 
   if (failed) {

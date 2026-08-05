@@ -7,7 +7,7 @@
 
 import { create } from "zustand";
 import type { Move } from "tsshogi";
-import type { Book, Chapter, DiagramBehavior, MoveNode } from "../types/book";
+import type { Book, Chapter, MoveNode } from "../types/book";
 import { appendMove, findNode, findParent, findPath } from "../shogi/tree";
 import { createSampleBook } from "../data/sampleBook";
 
@@ -18,15 +18,14 @@ import { createSampleBook } from "../data/sampleBook";
 export type NavSource = "text" | "board" | "tree" | "init";
 
 /**
- * 紙面の構造。どれを本命にするかを決めるため、比較できるようすべて用意してある。
+ * 紙面の構造。
  *
- *  paged        : ページめくり型。紙の棋書に一番近いが、画面幅が可変なので
- *                 電子書籍と同じリフロー（内容量に応じた再分割）が要る
- *  chapter-page : 章＝ページ。ページをめくる感覚を残しつつリフローは不要
- *  scroll       : 縦スクロール。図は本文の流れの中に置く
- *  linked       : 盤を別ペインに固定し、本文スクロールに追従させる（初版の形）
+ *  paged  : ページめくり型。紙の棋書に一番近い。既定。
+ *  scroll : 縦スクロール。図は本文の流れの中に置く。狭い画面向けの代替
+ *  linked : 盤を別ペインに固定し、本文スクロールに追従させる（初版の形）。
+ *           読み物としては採らないが、検討用途では有効なので残してある
  */
-export type LayoutMode = "paged" | "chapter-page" | "scroll" | "linked";
+export type LayoutMode = "paged" | "scroll" | "linked";
 
 /** 本文の組方向。既定は横書き。 */
 export type WritingMode = "horizontal" | "vertical";
@@ -51,8 +50,6 @@ type BookState = {
   writingMode: WritingMode;
   /** 分岐ツリーの向き。 */
   treeOrientation: TreeOrientation;
-  /** 図面の振る舞いの一括上書き。null なら各図の設定に従う。 */
-  diagramBehavior: DiagramBehavior | null;
   /** 木を破壊的に更新したことを React に伝えるためのカウンタ。 */
   revision: number;
 
@@ -74,7 +71,6 @@ type BookState = {
   setLayoutMode: (mode: LayoutMode) => void;
   setWritingMode: (mode: WritingMode) => void;
   setTreeOrientation: (orientation: TreeOrientation) => void;
-  setDiagramBehavior: (behavior: DiagramBehavior | null) => void;
   loadBook: (book: Book) => void;
 };
 
@@ -87,10 +83,9 @@ export function createBookStore(initialBook: Book) {
     flipped: false,
     autoFollow: true,
     editing: false,
-    layoutMode: "scroll",
+    layoutMode: "paged",
     writingMode: "horizontal",
     treeOrientation: "vertical",
-    diagramBehavior: null,
     revision: 0,
 
     chapter: () => get().book.chapters[get().chapterIndex],
@@ -166,7 +161,6 @@ export function createBookStore(initialBook: Book) {
     setLayoutMode: (mode) => set({ layoutMode: mode }),
     setWritingMode: (mode) => set({ writingMode: mode }),
     setTreeOrientation: (orientation) => set({ treeOrientation: orientation }),
-    setDiagramBehavior: (behavior) => set({ diagramBehavior: behavior }),
 
     loadBook: (book) =>
       set({

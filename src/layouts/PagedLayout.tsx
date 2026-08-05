@@ -16,10 +16,8 @@
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BlockList, firstDiagram } from "./BlockList";
-import { MainDiagram } from "../components/Diagram";
+import { BlockList } from "./BlockList";
 import { useBookStore } from "../store/bookStore";
-import type { Diagram as DiagramData } from "../types/book";
 
 /** 紙面どうしの間隔（px）。 */
 const PAGE_GAP = 48;
@@ -30,7 +28,6 @@ export function PagedLayout() {
   const book = useBookStore((state) => state.book);
   const setChapter = useBookStore((state) => state.setChapter);
   const writingMode = useBookStore((state) => state.writingMode);
-  const diagramBehavior = useBookStore((state) => state.diagramBehavior);
   const revision = useBookStore((state) => state.revision);
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -39,11 +36,8 @@ export function PagedLayout() {
   const [pageCount, setPageCount] = useState(1);
   // 段の幅は実測値（px）で渡す。column-width はパーセント指定を受け付けない。
   const [pageWidth, setPageWidth] = useState(0);
-  const [main, setMain] = useState<DiagramData | null>(null);
 
   const vertical = writingMode === "vertical";
-  const pageMain = diagramBehavior === "page-main";
-  const currentMain = pageMain ? (main ?? firstDiagram(chapter.blocks)) : null;
 
   const measure = useCallback(() => {
     const viewport = viewportRef.current;
@@ -74,7 +68,7 @@ export function PagedLayout() {
   // 幅が確定してから分割数を測る。内容や組方向が変わったときも測り直す。
   useLayoutEffect(() => {
     if (pageWidth > 0) measure();
-  }, [measure, pageWidth, chapter, writingMode, diagramBehavior, revision]);
+  }, [measure, pageWidth, chapter, writingMode, revision]);
 
   /**
    * 縦書きでは内容が右方向へ伸び、先頭（章の始まり）が最大スクロール位置にくる。
@@ -91,17 +85,16 @@ export function PagedLayout() {
     toStart();
     const timer = window.setTimeout(toStart, 900);
     return () => window.clearTimeout(timer);
-  }, [vertical, chapter, diagramBehavior]);
+  }, [vertical, chapter]);
 
   // 盤面は遅延読み込みで後から高さが変わるため、少し待ってもう一度測る。
   useEffect(() => {
     const timer = window.setTimeout(measure, 800);
     return () => window.clearTimeout(timer);
-  }, [measure, chapter, writingMode, diagramBehavior]);
+  }, [measure, chapter, writingMode]);
 
   useEffect(() => {
     setPage(0);
-    setMain(null);
     const viewport = viewportRef.current;
     if (viewport) {
       viewport.scrollLeft = vertical ? viewport.scrollWidth - viewport.clientWidth : 0;
@@ -172,12 +165,6 @@ export function PagedLayout() {
 
   return (
     <div className={`layout layout--paged${vertical ? " layout--vertical" : ""}`}>
-      {currentMain && (
-        <div className="layout-main-diagram">
-          <MainDiagram diagram={currentMain} />
-        </div>
-      )}
-
       <div className="paged-viewport" ref={viewportRef}>
         <div
           className="paged-content"
@@ -189,11 +176,7 @@ export function PagedLayout() {
           }}
         >
           <h2 className="chapter-title">{chapter.title}</h2>
-          <BlockList
-            blocks={chapter.blocks}
-            onRequestMain={setMain}
-            currentMain={currentMain}
-          />
+          <BlockList blocks={chapter.blocks} />
         </div>
       </div>
 

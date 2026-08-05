@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useBookStore } from "../store/bookStore";
 import { Markdown } from "./Markdown";
 import { QuizCard } from "./QuizCard";
+import type { Diagram } from "../types/book";
 
 /** 盤面側の操作で本文をスクロールした直後、本文 → 盤面の追従を止める時間（ms）。 */
 const SUPPRESS_MS = 700;
@@ -148,16 +149,10 @@ export function Reader() {
             ) : block.type === "diagram" && block.diagram ? (
               // この構造では盤が常に横にあるため、図を本文中にもう一枚置くと重複する。
               // 図はその局面へ飛ぶ指示として扱う。
-              <button
-                type="button"
-                className="diagram-chip"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setCurrentNode(block.diagram!.fromNodeId, "text");
-                }}
-              >
-                {block.diagram.caption ?? "図"} の局面へ
-              </button>
+              <DiagramChip
+                diagram={block.diagram}
+                onSelect={(nodeId) => setCurrentNode(nodeId, "text")}
+              />
             ) : (
               <Markdown
                 markdown={block.markdown}
@@ -170,5 +165,27 @@ export function Reader() {
       {/* 最後のブロックも「読んでいる帯」に入れるための余白。 */}
       <div className="reader-tail" aria-hidden="true" />
     </div>
+  );
+}
+
+/** 連動レイアウトでの図面。盤は横に常設されているので、その局面へ飛ぶ指示にする。 */
+function DiagramChip({
+  diagram,
+  onSelect,
+}: {
+  diagram: Diagram;
+  onSelect: (nodeId: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="diagram-chip"
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect(diagram.fromNodeId);
+      }}
+    >
+      {diagram.caption ?? "図"} の局面へ
+    </button>
   );
 }
