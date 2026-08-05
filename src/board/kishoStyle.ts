@@ -37,8 +37,8 @@ export const KISHO_BOARD_CSS = `
    * 座標（筋・段）。既定はセル高の 0.128 倍で、図が小さいと 4px 程度になり読めない。
    * 棋書の図では筋・段が読めることが前提なので大きくする。
    */
-  --sp_coordinate_x_size: 0.30;
-  --sp_coordinate_y_size: 0.30;
+  --sp_coordinate_x_size: 0.34;
+  --sp_coordinate_y_size: 0.34;
   --sp_coordinate_x_push: 0.16;
   --sp_coordinate_y_push: 0.16;
   --sp_coordinate_color: var(--diagram-coordinate);
